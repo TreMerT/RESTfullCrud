@@ -16,7 +16,9 @@ services:
         echo 'Waiting for MySQL to be ready...'
         sleep 1;
       done;
+      composer install --no-interaction --no-scripts &&
       php artisan migrate --force &&
+      php artisan key:generate &&
       php artisan cache:clear &&
       php artisan config:clear &&
       php artisan route:clear &&

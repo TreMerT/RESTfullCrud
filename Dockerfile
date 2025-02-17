@@ -27,8 +27,20 @@ ENV COMPOSER_ALLOW_SUPERUSER=1
 # Çalışma dizinini ayarlama
 WORKDIR /var/www
 
+
 # Uygulama dosyalarını kopyalama
 COPY ./src /var/www
+
+
+
+# Önce dosyayı kopyalayalım ve ls ile kontrol edelim
+COPY .env.example /var/www/.env.example2
+
+RUN chmod 777 /var/www/.env.example2
+
+# Dosya adını değiştirmeyi deneyelim ve tekrar kontrol edelim
+RUN mv /var/www/.env.example2 /var/www/.env2
+
 
 # Composer bağımlılıklarını yükleme
 RUN composer install --no-interaction --no-scripts
@@ -36,15 +48,8 @@ RUN composer install --no-interaction --no-scripts
 # Dosya izinlerini ayarlama
 RUN chmod -R 777 storage bootstrap/cache
 
-
-
-# PHP-FPM'i başlat
-CMD ["php-fpm"] 
-
+# Başlangıç scriptini oluştur
 RUN echo '#!/bin/sh\n\
-if [ ! -f .env ]; then\n\
-    cp .env.example .env\n\
-fi\n\
 php artisan key:generate --force\n\
 php artisan migrate --force\n\
 php artisan cache:clear\n\
@@ -54,3 +59,5 @@ php artisan view:clear\n\
 php-fpm' > /usr/local/bin/start-container.sh
 
 RUN chmod +x /usr/local/bin/start-container.sh
+
+CMD ["/usr/local/bin/start-container.sh"]
