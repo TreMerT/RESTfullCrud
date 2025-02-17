@@ -1,0 +1,83 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: laravel-app
+    restart: unless-stopped
+    working_dir: /var/www/
+    tty: true
+    stdin_open: true
+    command: >
+      bash -c "
+      while ! nc -z mysql 3306; do
+        echo 'Waiting for MySQL to be ready...'
+        sleep 1;
+      done;
+      php artisan migrate --force &&
+      php artisan cache:clear &&
+      php artisan config:clear &&
+      php artisan route:clear &&
+      php artisan view:clear &&
+      php-fpm"
+    volumes:
+      - ./src:/var/www
+    networks:
+      - laravel-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  nginx:
+    image: nginx:alpine
+    container_name: laravel-nginx
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    volumes:
+      - ./src:/var/www
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d/
+    networks:
+      - laravel-network
+
+  mysql:
+    image: mysql:8.0
+    container_name: laravel-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: laravel
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_PASSWORD: password
+      MYSQL_USER: laravel
+    volumes:
+      - mysql-data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - laravel-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:alpine
+    container_name: laravel-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - laravel-network
+
+networks:
+  laravel-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
+    driver: local
