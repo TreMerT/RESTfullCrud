@@ -42,7 +42,7 @@ RUN chmod -R 777 storage bootstrap/cache
 # Başlangıç scriptini oluştur
 RUN echo '#!/bin/sh\n\
 php artisan key:generate --force\n\
-php artisan migrate --force\n\
+php artisan migrate --seed --force\n\
 php artisan cache:clear\n\
 php artisan config:clear\n\
 php artisan route:clear\n\
