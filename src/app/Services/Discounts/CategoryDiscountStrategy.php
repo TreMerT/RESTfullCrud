@@ -23,9 +23,9 @@ class CategoryDiscountStrategy implements DiscountStrategy
         $categoryGroups = $order->items->groupBy(function ($item) {
             return $item->product->category;
         });
-
-        foreach ($categoryGroups as $categoryId => $items) {
-            foreach ($allRules as $rule) {
+        
+        foreach ($categoryGroups as $categoryId => $items) { 
+            foreach ($allRules as $rule) { 
                 if (in_array($categoryId, $rule['applicable_categories'])) {
                     $discount = $this->applyRule(
                         $rule,
@@ -33,14 +33,14 @@ class CategoryDiscountStrategy implements DiscountStrategy
                         $currentTotal,
                         $categories[$categoryId]['name']
                     );
-
+                  
                     if ($discount) {
                         $discounts[] = $discount;
                         $currentTotal = $discount['subtotal'];
                     }
                 }
             }
-        }
+        }  
 
         return [
             'discounts' => $discounts,
@@ -52,12 +52,14 @@ class CategoryDiscountStrategy implements DiscountStrategy
     {
         switch ($rule['type']) {
             case 'MULTI_ITEM_CHEAPEST_DISCOUNT':
-                if ($items->count() >= $rule['min_items']) {
+                $totalQuantity = $items->sum('quantity');
+                if ($totalQuantity >= 2) {
                     $cheapestItem = $items->sortBy('unit_price')->first();
-                    $discountAmount = $cheapestItem->unit_price * ($rule['discount_percentage'] / 100);
+                    $discountAmount = ($cheapestItem->unit_price * $cheapestItem->quantity) * ($rule['discount_percentage'] / 100);
 
                     return [
-                        'discountReason' => "{$categoryName} - {$rule['description']}",
+                        'discountReason' => "MULTI_ITEM_CHEAPEST_DISCOUNT",
+                        'discountReasontr' => "{$categoryName} - {$rule['description']}",
                         'discountAmount' => number_format($discountAmount, 2, '.', ''),
                         'subtotal' => number_format($currentTotal - $discountAmount, 2, '.', '')
                     ];
@@ -71,7 +73,8 @@ class CategoryDiscountStrategy implements DiscountStrategy
                     $discountAmount = $item->unit_price;
 
                     return [
-                        'discountReason' => "{$categoryName} - {$rule['description']}",
+                        'discountReason' => "BUY_N_GET_1_FREE",
+                        'discountReasontr' => "{$categoryName} - {$rule['description']}",
                         'discountAmount' => number_format($discountAmount, 2, '.', ''),
                         'subtotal' => number_format($currentTotal - $discountAmount, 2, '.', '')
                     ];
