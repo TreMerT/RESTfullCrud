@@ -1,15 +1,24 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Http\Requests\CreateOrderRequest;
+use App\Services\DiscountCalculatorService;
 
 class OrderController extends Controller
 {
+    private $discountCalculator;
+
+    public function __construct(DiscountCalculatorService $discountCalculator)
+    {
+        $this->discountCalculator = $discountCalculator;
+    }
+
     public function index()
     {
         $orders = Order::with(['customer', 'items.product'])->get();
@@ -67,5 +76,12 @@ class OrderController extends Controller
 
         $order->delete();
         return response()->json(null, 204);
+    }
+
+    public function calculateDiscounts(Order $order)
+    {
+        return response()->json(
+            $this->discountCalculator->calculateDiscounts($order)
+        );
     }
 }
