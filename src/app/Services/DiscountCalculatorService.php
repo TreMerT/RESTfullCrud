@@ -3,38 +3,42 @@
 namespace App\Services;
 
 use App\Models\Order;
+use App\Services\Discounts\CategoryDiscountStrategy;
+use App\Services\Discounts\TotalAmountDiscountStrategy;
 
 class DiscountCalculatorService
 {
     private array $discountStrategies;
-    
-    public function __construct()
+    private RedisDiscountRuleService $redisDiscountRuleService;
+
+    public function __construct(RedisDiscountRuleService $redisDiscountRuleService)
     {
+        $this->redisDiscountRuleService = $redisDiscountRuleService;
         $this->discountStrategies = [
+            new CategoryDiscountStrategy($redisDiscountRuleService),
             new TotalAmountDiscountStrategy(),
-            new CategoryTwoDiscountStrategy(),
-            new CategoryOneDiscountStrategy(),
         ];
     }
 
     public function calculateDiscounts(Order $order)
     {
-        $discounts = [];
         $currentTotal = $order->total;
+        $allDiscounts = [];
 
         foreach ($this->discountStrategies as $strategy) {
-            $discount = $strategy->calculate($order, $currentTotal);
-            if ($discount) {
-                $discounts[] = $discount;
-                $currentTotal = $discount['subtotal'];
+            $result = $strategy->calculate($order, $currentTotal);
+
+            if (!empty($result['discounts'])) {
+                $allDiscounts = array_merge($allDiscounts, $result['discounts']);
+                $currentTotal = $result['currentTotal'];
             }
         }
 
         return [
             'orderId' => $order->id,
-            'discounts' => $discounts,
-            'totalDiscount' => collect($discounts)->sum('discountAmount'),
-            'discountedTotal' => $currentTotal
+            'discounts' => $allDiscounts,
+            'totalDiscount' => number_format(collect($allDiscounts)->sum('discountAmount'), 2, '.', ''),
+            'discountedTotal' => number_format($currentTotal, 2, '.', '')
         ];
     }
-} 
+}

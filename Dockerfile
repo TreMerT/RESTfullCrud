@@ -33,15 +33,6 @@ COPY ./src /var/www
 
 
 
-# Önce dosyayı kopyalayalım ve ls ile kontrol edelim
-COPY .env.example /var/www/.env.example2
-
-RUN chmod 777 /var/www/.env.example2
-
-# Dosya adını değiştirmeyi deneyelim ve tekrar kontrol edelim
-RUN mv /var/www/.env.example2 /var/www/.env2
-
-
 # Composer bağımlılıklarını yükleme
 RUN composer install --no-interaction --no-scripts
 
